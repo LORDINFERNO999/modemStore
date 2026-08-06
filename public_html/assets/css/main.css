@@ -1,0 +1,180 @@
+/* assets/css/main.css
+   Estilos base del layout compartido (sidebar + main-content) usado por header.php.
+   Las páginas grandes (index, login, registro, dashboard) traen su propio CSS embebido. */
+
+:root {
+  --bg: #07070d;
+  --surface: #13131a;
+  --surface2: #1c1c27;
+  --accent: #7c6dfa;
+  --accent2: #f472b6;
+  --text: #f0f0f8;
+  --muted: #7a7a96;
+  --border: rgba(255, 255, 255, 0.07);
+  --radius: 14px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Rajdhani', 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; }
+
+/* ── Layout ── */
+.layout { display: flex; min-height: 100vh; }
+
+.main-content {
+  flex: 1;
+  padding: 28px 32px;
+  min-width: 0;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 250px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 22px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.sidebar-brand { padding: 6px 8px 20px; }
+.brand-text {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: 20px;
+  letter-spacing: 1px;
+}
+.brand-text span { color: var(--accent); }
+
+.sidebar-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  margin-bottom: 18px;
+}
+.sidebar-search i { color: var(--muted); }
+.sidebar-search input {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  width: 100%;
+}
+.sidebar-search input::placeholder { color: var(--muted); }
+
+.sidebar-nav { display: flex; flex-direction: column; gap: 4px; }
+.nav-section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin: 6px 8px 8px;
+}
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.2s ease;
+}
+.sidebar-nav a:hover { background: var(--surface2); color: var(--text); }
+.sidebar-nav a i { font-size: 18px; }
+
+.sidebar-saldo {
+  margin-top: 18px;
+  background: linear-gradient(135deg, rgba(124, 109, 250, 0.14), rgba(244, 114, 182, 0.10));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.sidebar-saldo .label {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sidebar-saldo .monto {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  margin-top: 4px;
+}
+
+.sidebar-footer { margin-top: auto; padding-top: 18px; }
+.sidebar-contact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.sidebar-redes { display: flex; gap: 10px; }
+.sidebar-redes a {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.sidebar-redes a:hover { color: var(--text); background: var(--accent); }
+
+/* ── Toggle móvil ── */
+.nav-mobile-toggle {
+  display: none;
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 60;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .nav-mobile-toggle { display: flex; align-items: center; justify-content: center; }
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 55;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .main-content { padding: 70px 18px 28px; }
+}

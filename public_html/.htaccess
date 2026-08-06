@@ -1,0 +1,8 @@
+# Desactiva el listado de directorios (nadie puede ver el contenido de carpetas
+# como /assets/comprobantes/ escribiendo la ruta en el navegador)
+Options -Indexes
+
+# Bloquea la descarga directa de archivos sensibles (volcados SQL, config, entornos)
+<FilesMatch "\.(sql|env|ini|log)$">
+Require all denied
+</FilesMatch>

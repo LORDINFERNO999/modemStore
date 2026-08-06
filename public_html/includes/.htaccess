@@ -1,0 +1,2 @@
+# Bloquea el acceso web directo a los includes (config, auth, funciones, seguridad).
+Require all denied

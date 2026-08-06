@@ -1,0 +1,11 @@
+# Protege carpetas internas: solo /public y /admin deben ser accesibles vía navegador.
+# Sube este proyecto de forma que /config, /core, /services, /sql queden FUERA
+# del document root, o bien usa estas reglas si todo vive bajo public_html.
+
+<FilesMatch "\.(sql|md)$">
+  Require all denied
+</FilesMatch>
+
+RewriteEngine On
+RewriteCond %{REQUEST_URI} ^/(config|core|services|sql)/ [NC]
+RewriteRule ^ - [F,L]

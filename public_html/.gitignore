@@ -1,0 +1,13 @@
+# 🔒 Contraseñas / configuración sensible
+includes/config.php
+includes/mailer.php
+
+# 🔒 Datos privados de clientes (comprobantes de pago)
+assets/comprobantes/
+
+# 🔒 Respaldos de base de datos (pueden tener datos de usuarios)
+db/
+
+# Basura del sistema
+Thumbs.db
+.DS_Store
