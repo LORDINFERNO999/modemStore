@@ -59,6 +59,21 @@ h1{font-family:'Syne',sans-serif;font-size:26px;margin-bottom:6px;}
 .pend-note{margin-top:12px;font-size:13px;color:var(--warn);background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:10px;padding:10px 12px;}
 .empty{text-align:center;padding:70px 20px;color:var(--muted);}
 .empty a{color:var(--accent);font-weight:600;text-decoration:none;}
+@media(max-width:600px){
+  nav{padding:0 16px;height:58px;}
+  .nav-links a{padding:8px 10px;font-size:13px;}
+  .container{padding:24px 14px 50px;}
+  h1{font-size:22px;}
+  .order{padding:16px;}
+  .order-head{gap:10px;}
+  .order-logo{width:40px;height:40px;}
+  .order-monto{font-size:16px;}
+  .creds{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:380px){
+  .creds{grid-template-columns:1fr;}
+  .order-info{gap:9px;}
+}
 </style>
 </head>
 <body>
