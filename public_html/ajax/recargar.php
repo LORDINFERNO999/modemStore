@@ -82,9 +82,8 @@ try {
     $nombreCliente = $usuarioWA['nombre'] ?? ($_SESSION['nombre'] ?? 'Cliente');
     $emailCliente  = $usuarioWA['email']  ?? '';
     $montoFmt      = '$' . number_format($monto, 0, ',', '.');
-    $panelUrl      = SITE_URL . '/admin/recargas.php';
 
-    $mensajeWA = "💰 *NUEVA RECARGA PENDIENTE*\n"
+    $mensajeTG = "💰 *NUEVA RECARGA PENDIENTE*\n"
                . "━━━━━━━━━━━━━━━━━━\n"
                . "👤 Cliente: *{$nombreCliente}*\n"
                . "📧 Correo: " . ($emailCliente ?: '—') . "\n"
@@ -92,10 +91,16 @@ try {
                . "🧾 Recarga: #{$recargaId}\n"
                . "🗓️ " . date('d/m/Y H:i') . "\n"
                . "━━━━━━━━━━━━━━━━━━\n"
-               . "💳 Pago por transferencia — revisa el comprobante.\n"
-               . "👉 Apruébala en:\n{$panelUrl}";
+               . "👇 Revisa la colilla y aprueba o rechaza con los botones.";
 
-    enviarWhatsApp($mensajeWA);
+    // Envía la FOTO del comprobante + botones Aprobar/Rechazar al Telegram del admin
+    $comprobanteUrl = SITE_URL . '/' . $rutaRel;
+    $esImagen = in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true);
+    if (function_exists('enviarRecargaTelegram')) {
+        enviarRecargaTelegram($recargaId, $mensajeTG, $comprobanteUrl, $esImagen);
+    } else {
+        enviarWhatsApp($mensajeTG); // respaldo por si acaso
+    }
     // ────────────────────────────────────────────────────────────
 
     echo json_encode([

@@ -102,6 +102,59 @@ function crearNotificacion(string $tipo, int $usuarioId, ?int $referenciaId, str
     }
 }
 
+/**
+ * Aprueba o rechaza una recarga desde los botones de Telegram.
+ * $accion: 'ap' (aprobar) | 're' (rechazar).
+ * Devuelve ['ok', 'estado', 'msg', 'caption'].
+ */
+function procesarRecargaTelegram(int $recargaId, string $accion): array {
+    global $pdo;
+
+    $stmt = $pdo->prepare("SELECT r.*, u.nombre AS cliente_nombre FROM recargas r JOIN usuarios u ON r.usuario_id = u.id WHERE r.id = ?");
+    $stmt->execute([$recargaId]);
+    $r = $stmt->fetch();
+
+    if (!$r) {
+        return ['ok' => false, 'estado' => '', 'msg' => 'Recarga no encontrada', 'caption' => "Recarga #$recargaId no encontrada."];
+    }
+
+    $cliente = htmlspecialchars($r['cliente_nombre'] ?? 'Cliente', ENT_NOQUOTES, 'UTF-8');
+    $montoTxt = formatMoney((float)$r['monto']);
+
+    if ($r['estado'] !== 'pendiente') {
+        $msg = 'Esta recarga ya fue ' . $r['estado'];
+        return [
+            'ok' => false, 'estado' => $r['estado'], 'msg' => $msg,
+            'caption' => "💰 <b>RECARGA #$recargaId</b>\n👤 $cliente\n💵 $montoTxt\n\n⚠️ <b>Ya estaba " . $r['estado'] . "</b>",
+        ];
+    }
+
+    if ($accion === 'ap') {
+        $ok = registrarMovimiento((int)$r['usuario_id'], 'recarga', (float)$r['monto'], $recargaId, 'Recarga aprobada desde Telegram');
+        if ($ok) {
+            $pdo->prepare("UPDATE recargas SET estado='aprobada' WHERE id=?")->execute([$recargaId]);
+            $pdo->prepare("UPDATE notificaciones SET atendida=1, leida=1 WHERE tipo='recarga' AND referencia_id=?")->execute([$recargaId]);
+            return [
+                'ok' => true, 'estado' => 'aprobada', 'msg' => "✅ Aprobada · $montoTxt acreditado",
+                'caption' => "💰 <b>RECARGA #$recargaId</b>\n👤 $cliente\n💵 $montoTxt\n\n✅ <b>APROBADA</b> · saldo acreditado",
+            ];
+        }
+        return ['ok' => false, 'estado' => 'pendiente', 'msg' => 'No se pudo acreditar el saldo', 'caption' => "❌ Error al acreditar la recarga #$recargaId"];
+    }
+
+    if ($accion === 're') {
+        $pdo->prepare("UPDATE recargas SET estado='rechazada', nota_admin=? WHERE id=?")
+            ->execute(['Comprobante no válido.', $recargaId]);
+        $pdo->prepare("UPDATE notificaciones SET atendida=1, leida=1 WHERE tipo='recarga' AND referencia_id=?")->execute([$recargaId]);
+        return [
+            'ok' => true, 'estado' => 'rechazada', 'msg' => '❌ Recarga rechazada',
+            'caption' => "💰 <b>RECARGA #$recargaId</b>\n👤 $cliente\n💵 $montoTxt\n\n❌ <b>RECHAZADA</b>",
+        ];
+    }
+
+    return ['ok' => false, 'estado' => $r['estado'], 'msg' => 'Acción no válida', 'caption' => ''];
+}
+
 function formatMoney(float $amount): string {
     return '$ ' . number_format($amount, 0, ',', '.');
 }
