@@ -41,6 +41,21 @@ if ($file['size'] > 5 * 1024 * 1024) {
     echo json_encode(['ok' => false, 'msg' => 'El archivo supera el máximo de 5 MB']); exit;
 }
 
+// ── Validaciones anti-duplicado (ANTES de guardar el archivo) ──
+$stmtPend = $pdo->prepare("SELECT COUNT(*) FROM recargas WHERE usuario_id = ? AND estado = 'pendiente'");
+$stmtPend->execute([$_SESSION['usuario_id']]);
+if ((int)$stmtPend->fetchColumn() >= 3) {
+    echo json_encode(['ok' => false, 'msg' => 'Ya tienes 3 recargas pendientes de validación. Espera a que las aprobemos antes de enviar otra.']); exit;
+}
+
+// Evita reenvíos del MISMO valor: misma persona, mismo monto, pendiente y reciente (últimos 15 min).
+// Así, si el cliente no ve el saldo y reenvía el comprobante, no se crean recargas duplicadas.
+$stmtDup = $pdo->prepare("SELECT COUNT(*) FROM recargas WHERE usuario_id = ? AND monto = ? AND estado = 'pendiente' AND created_at >= (NOW() - INTERVAL 15 MINUTE)");
+$stmtDup->execute([$_SESSION['usuario_id'], $monto]);
+if ((int)$stmtDup->fetchColumn() > 0) {
+    echo json_encode(['ok' => false, 'msg' => 'Ya recibimos tu recarga de ' . formatMoney($monto) . ' y está pendiente de validación. ¡No la envíes de nuevo! En unos minutos refresca la página para ver tu saldo actualizado.']); exit;
+}
+
 // Nombre aleatorio (no adivinable) para proteger comprobantes de otros clientes
 $nombre  = 'recarga_' . $_SESSION['usuario_id'] . '_' . bin2hex(random_bytes(12)) . '.' . $ext;
 $destAbs = __DIR__ . '/../assets/comprobantes/' . $nombre;
@@ -48,13 +63,6 @@ $rutaRel = 'assets/comprobantes/' . $nombre;
 
 if (!move_uploaded_file($file['tmp_name'], $destAbs)) {
     echo json_encode(['ok' => false, 'msg' => 'No se pudo guardar el comprobante. Intenta de nuevo.']); exit;
-}
-
-$stmtPend = $pdo->prepare("SELECT COUNT(*) FROM recargas WHERE usuario_id = ? AND estado = 'pendiente'");
-$stmtPend->execute([$_SESSION['usuario_id']]);
-$numPendientes = (int)$stmtPend->fetchColumn();
-if ($numPendientes >= 3) {
-    echo json_encode(['ok' => false, 'msg' => 'Ya tienes 3 recargas pendientes. Espera a que sean aprobadas.']); exit;
 }
 
 try {
