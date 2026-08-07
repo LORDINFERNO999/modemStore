@@ -198,7 +198,7 @@ tr:hover td { background:rgba(255,255,255,.015); }
 .avatar-cell { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:#fff; flex-shrink:0; }
 .user-cell { display:flex; align-items:center; gap:10px; }
 .user-name { font-weight:600; font-size:13px; }
-.user-email { font-size:11px; color:var(--text3); margin-top:1px; word-break:break-all; }
+.user-email { font-size:11px; color:var(--text2); margin-top:1px; overflow-wrap:anywhere; }
 .badge { padding:3px 9px; border-radius:20px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; }
 .badge-admin  { background:rgba(245,158,11,.12); color:var(--warn); }
 .badge-cliente{ background:rgba(124,109,250,.12); color:#9c8df7; }
@@ -255,8 +255,13 @@ tr:hover td { background:rgba(255,255,255,.015); }
   table td { border-top:none; padding:6px 0; display:flex; justify-content:space-between; align-items:center; gap:12px; text-align:right; }
   table td::before { content:attr(data-label); font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:var(--text3); font-weight:700; flex-shrink:0; text-align:left; }
   /* La celda de usuario ocupa toda la fila, sin etiqueta */
-  table td[data-label="Usuario"]{ padding-bottom:10px; margin-bottom:4px; border-bottom:1px solid var(--border); }
+  table td[data-label="Usuario"]{ padding-bottom:12px; margin-bottom:6px; border-bottom:1px solid var(--border); text-align:left; }
   table td[data-label="Usuario"]::before { display:none; }
+  table td[data-label="Usuario"] .user-cell { gap:12px; align-items:center; width:100%; }
+  table td[data-label="Usuario"] .user-cell > div:last-child { min-width:0; flex:1; }
+  table td[data-label="Usuario"] .avatar-cell { width:42px; height:42px; font-size:15px; }
+  table td[data-label="Usuario"] .user-name { font-size:15px; font-weight:700; }
+  table td[data-label="Usuario"] .user-email { font-size:12px; margin-top:2px; color:var(--text2); }
   table td[data-label="Acciones"]{ flex-direction:column; align-items:stretch; }
   table td[data-label="Acciones"]::before { margin-bottom:4px; }
   table td[data-label="Acciones"] > div { justify-content:flex-end; }
