@@ -6,6 +6,9 @@ require_once __DIR__ . '/../includes/funciones.php';
 require_once __DIR__ . '/../includes/seguridad.php';
 require_once __DIR__ . '/../includes/whatsapp.php'; // ← WhatsApp
 
+// Evita que cualquier advertencia PHP se imprima y dañe el JSON de respuesta
+@ini_set('display_errors', '0');
+
 header('Content-Type: application/json');
 
 if (!isLoggedIn()) {
@@ -96,25 +99,37 @@ try {
     $comprobanteUrl = SITE_URL . '/' . $rutaRel;
     $esImagen = in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true);
 
-    // 1) Responder al cliente DE INMEDIATO (no lo hacemos esperar por Telegram)
-    echo json_encode([
+    // 1) Preparar la respuesta para el cliente
+    $respuesta = json_encode([
         'ok'  => true,
         'msg' => '¡Solicitud enviada! Tu saldo se actualizará cuando el admin valide tu transferencia.',
         'recarga_id' => $recargaId,
     ]);
 
-    // 2) Cerrar la conexión con el navegador para que no espere la descarga de la foto en Telegram
+    // 2) Enviarla y CERRAR la conexión con el navegador (sirve en LiteSpeed, FPM o Apache/CGI)
+    ignore_user_abort(true);
+    while (ob_get_level() > 0) { ob_end_clean(); }
+    header('Connection: close');
+    header('Content-Length: ' . strlen($respuesta));
+    echo $respuesta;
+
     if (function_exists('fastcgi_finish_request')) {
         fastcgi_finish_request();
     } elseif (function_exists('litespeed_finish_request')) {
         litespeed_finish_request();
+    } else {
+        flush();
     }
 
-    // 3) Ya sin el cliente esperando, se envía el aviso con la colilla + botones a Telegram
-    if (function_exists('enviarRecargaTelegram')) {
-        enviarRecargaTelegram($recargaId, $mensajeTG, $comprobanteUrl, $esImagen);
-    } else {
-        enviarWhatsApp($mensajeTG); // respaldo por si acaso
+    // 3) Ya sin el cliente esperando: aviso con la colilla + botones (a prueba de fallos)
+    try {
+        if (function_exists('enviarRecargaTelegram')) {
+            enviarRecargaTelegram($recargaId, $mensajeTG, $comprobanteUrl, $esImagen);
+        } else {
+            enviarWhatsApp($mensajeTG);
+        }
+    } catch (\Throwable $e) {
+        error_log('recargar.php Telegram: ' . $e->getMessage());
     }
     exit;
 
