@@ -109,29 +109,21 @@ try {
     $comprobanteUrl = SITE_URL . '/' . $rutaRel;
     $esImagen = in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true);
 
-    // 1) Preparar la respuesta para el cliente
-    $respuesta = json_encode([
+    // Responder al cliente con JSON limpio (sin manipular headers, para no romper la respuesta)
+    echo json_encode([
         'ok'  => true,
         'msg' => '¡Solicitud enviada! Tu saldo se actualizará cuando el admin valide tu transferencia.',
         'recarga_id' => $recargaId,
     ]);
 
-    // 2) Enviarla y CERRAR la conexión con el navegador (sirve en LiteSpeed, FPM o Apache/CGI)
-    ignore_user_abort(true);
-    while (ob_get_level() > 0) { ob_end_clean(); }
-    header('Connection: close');
-    header('Content-Length: ' . strlen($respuesta));
-    echo $respuesta;
-
+    // Cerrar la conexión si el servidor lo permite, para no esperar por Telegram
     if (function_exists('fastcgi_finish_request')) {
         fastcgi_finish_request();
     } elseif (function_exists('litespeed_finish_request')) {
         litespeed_finish_request();
-    } else {
-        flush();
     }
 
-    // 3) Ya sin el cliente esperando: aviso con la colilla + botones (a prueba de fallos)
+    // Aviso a Telegram (nunca debe afectar la respuesta al cliente)
     try {
         if (function_exists('enviarRecargaTelegram')) {
             enviarRecargaTelegram($recargaId, $mensajeTG, $comprobanteUrl, $esImagen);
