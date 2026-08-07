@@ -160,6 +160,7 @@ function telegramApi(string $token, string $method, array $params): ?array {
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST           => true,
             CURLOPT_POSTFIELDS     => http_build_query($params),
+            CURLOPT_CONNECTTIMEOUT => 8,
             CURLOPT_TIMEOUT        => 20,
             CURLOPT_SSL_VERIFYPEER => true,
         ]);
