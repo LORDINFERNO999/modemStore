@@ -93,21 +93,30 @@ try {
                . "━━━━━━━━━━━━━━━━━━\n"
                . "👇 Revisa la colilla y aprueba o rechaza con los botones.";
 
-    // Envía la FOTO del comprobante + botones Aprobar/Rechazar al Telegram del admin
     $comprobanteUrl = SITE_URL . '/' . $rutaRel;
     $esImagen = in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true);
-    if (function_exists('enviarRecargaTelegram')) {
-        enviarRecargaTelegram($recargaId, $mensajeTG, $comprobanteUrl, $esImagen);
-    } else {
-        enviarWhatsApp($mensajeTG); // respaldo por si acaso
-    }
-    // ────────────────────────────────────────────────────────────
 
+    // 1) Responder al cliente DE INMEDIATO (no lo hacemos esperar por Telegram)
     echo json_encode([
         'ok'  => true,
         'msg' => '¡Solicitud enviada! Tu saldo se actualizará cuando el admin valide tu transferencia.',
         'recarga_id' => $recargaId,
     ]);
+
+    // 2) Cerrar la conexión con el navegador para que no espere la descarga de la foto en Telegram
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } elseif (function_exists('litespeed_finish_request')) {
+        litespeed_finish_request();
+    }
+
+    // 3) Ya sin el cliente esperando, se envía el aviso con la colilla + botones a Telegram
+    if (function_exists('enviarRecargaTelegram')) {
+        enviarRecargaTelegram($recargaId, $mensajeTG, $comprobanteUrl, $esImagen);
+    } else {
+        enviarWhatsApp($mensajeTG); // respaldo por si acaso
+    }
+    exit;
 
 } catch (Exception $e) {
     error_log("ajax/recargar.php: " . $e->getMessage());
