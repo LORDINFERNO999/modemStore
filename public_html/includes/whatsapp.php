@@ -34,17 +34,33 @@ function enviarWhatsApp(string $mensaje): bool {
     $cfg  = [];
     foreach ($stmt->fetchAll() as $row) $cfg[$row['clave']] = $row['valor'];
 
-    $token  = trim($cfg['telegram_token'] ?? '');
-    $chatId = trim($cfg['telegram_chat_id'] ?? '');
+    $token   = trim($cfg['telegram_token'] ?? '');
+    $chatRaw = trim($cfg['telegram_chat_id'] ?? '');
 
-    if (!$token || !$chatId) {
-        error_log("enviarWhatsApp(Telegram): falta configuración (token=" . ($token ? 'presente' : 'vacío') . ", chat_id=" . ($chatId ? 'presente' : 'vacío') . ")");
+    if (!$token || !$chatRaw) {
+        error_log("enviarWhatsApp(Telegram): falta configuración (token=" . ($token ? 'presente' : 'vacío') . ", chat_id=" . ($chatRaw ? 'presente' : 'vacío') . ")");
         return false; // No configurado → silencio
     }
+
+    // Soporta varios destinatarios separados por coma: "123456,987654"
+    $destinatarios = array_filter(array_map('trim', explode(',', $chatRaw)));
 
     // Convertir el formato *negrita* (WhatsApp) al HTML de Telegram
     $texto = telegramFormatear($mensaje);
 
+    $algunoOk = false;
+    foreach ($destinatarios as $chatId) {
+        if (telegramEnviarA($token, $chatId, $texto)) {
+            $algunoOk = true;
+        }
+    }
+    return $algunoOk; // true si al menos uno se entregó
+}
+
+/**
+ * Envía un mensaje ya formateado a un chat_id concreto de Telegram.
+ */
+function telegramEnviarA(string $token, string $chatId, string $texto): bool {
     $url = 'https://api.telegram.org/bot' . $token . '/sendMessage';
     $params = [
         'chat_id'                  => $chatId,
@@ -69,7 +85,7 @@ function enviarWhatsApp(string $mensaje): bool {
         curl_close($ch);
 
         if ($resp === false) {
-            error_log("enviarWhatsApp(Telegram) cURL error: $err");
+            error_log("enviarWhatsApp(Telegram) cURL error [$chatId]: $err");
             return false;
         }
 
@@ -90,7 +106,7 @@ function enviarWhatsApp(string $mensaje): bool {
         ]]);
         $resp = @file_get_contents($url, false, $ctx);
         if ($resp === false) {
-            error_log("enviarWhatsApp(Telegram) file_get_contents falló");
+            error_log("enviarWhatsApp(Telegram) file_get_contents falló [$chatId]");
             return false;
         }
         error_log("enviarWhatsApp(Telegram) [fgc] chat=$chatId | respuesta: " . substr($resp, 0, 400));
