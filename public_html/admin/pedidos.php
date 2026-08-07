@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'entre
     }
 }
 
-// Rechazar pedido (transferencia no válida) — no hay saldo que devolver
+// Rechazar pedido: se cancela y se DEVUELVE el saldo al cliente (la compra ya lo descontó)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'rechazar') {
     csrfRequire();
     $pedidoId = (int)($_POST['pedido_id'] ?? 0);
@@ -52,10 +52,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'recha
     $ped = $stmt->fetch();
     $nota = trim($_POST['nota'] ?? '');
     if ($ped && $ped['estado'] === 'pendiente') {
+        // Marcar el pedido como cancelado con el motivo
         $pdo->prepare("UPDATE pedidos SET estado = 'cancelado', nota_admin = ? WHERE id = ?")
             ->execute([$nota !== '' ? $nota : 'La transferencia no pudo ser validada.', $pedidoId]);
+
+        // Reembolsar el saldo que se descontó al momento de la compra
+        $reembolsado = registrarMovimiento(
+            (int)$ped['usuario_id'],
+            'reembolso',
+            (float)$ped['monto'],
+            $pedidoId,
+            "Reembolso por rechazo del pedido #$pedidoId"
+        );
+
         $pdo->prepare("UPDATE notificaciones SET atendida = 1, leida = 1 WHERE tipo = 'compra' AND referencia_id = ?")->execute([$pedidoId]);
-        $msg = "Pedido #$pedidoId rechazado";
+
+        $msg = $reembolsado
+             ? "Pedido #$pedidoId rechazado y saldo reembolsado ✓"
+             : "Pedido #$pedidoId rechazado (⚠ no se pudo reembolsar, revísalo manualmente)";
+        if (!$reembolsado) $msgTipo = 'err';
     } else {
         $msg = 'Solo se pueden rechazar pedidos pendientes'; $msgTipo = 'err';
     }

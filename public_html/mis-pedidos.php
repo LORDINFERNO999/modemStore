@@ -66,7 +66,7 @@ h1{font-family:'Syne',sans-serif;font-size:26px;margin-bottom:6px;}
   <a href="dashboard.php" class="nav-logo"><?= htmlspecialchars(SITE_NAME, ENT_QUOTES, 'UTF-8') ?></a>
   <div class="nav-links">
     <a href="dashboard.php">Mi cuenta</a>
-    <a href="recarga.php">Recargar</a>
+    <a href="dashboard.php?tab=billetera">Recargar</a>
     <a href="logout.php">Salir</a>
   </div>
 </nav>
