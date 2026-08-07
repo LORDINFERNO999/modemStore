@@ -71,6 +71,12 @@ $recargas->execute($params);
 $recargas = $recargas->fetchAll();
 
 $pendientesCount = (int)$pdo->query("SELECT COUNT(*) FROM recargas WHERE estado = 'pendiente'")->fetchColumn();
+
+// Posibles duplicados: mismo cliente + mismo monto con varias recargas PENDIENTES
+$dupMap = [];
+foreach ($pdo->query("SELECT usuario_id, monto, COUNT(*) AS c FROM recargas WHERE estado='pendiente' GROUP BY usuario_id, monto HAVING c > 1")->fetchAll() as $d) {
+    $dupMap[$d['usuario_id'] . '|' . (float)$d['monto']] = (int)$d['c'];
+}
 $tz = $pdo->query("SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN estado='aprobada' THEN monto END),0) AS total_aprobado, COALESCE(SUM(CASE WHEN estado='pendiente' THEN monto END),0) AS total_pendiente, SUM(estado='aprobada') AS n_aprobada, SUM(estado='rechazada') AS n_rechazada FROM recargas")->fetch();
 ?>
 
@@ -137,6 +143,9 @@ h1{font-size:20px;font-weight:800;margin-bottom:4px}
 .btn-eliminar-card{flex:0 0 auto;width:44px;padding:12px;border-radius:var(--r);background:rgba(239,68,68,.1);color:var(--err);border:none;cursor:pointer;font-size:14px;touch-action:manipulation}
 .btn-eliminar-card:hover,.btn-eliminar-card:active{background:rgba(239,68,68,.25)}
 .rc-nota{margin-top:8px;font-size:11px;color:var(--text3);background:var(--s2);padding:8px 10px;border-radius:8px}
+.rc-dup{margin-top:8px;font-size:12px;font-weight:700;color:var(--warn);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);padding:9px 11px;border-radius:8px;display:flex;align-items:flex-start;gap:6px;line-height:1.35}
+.rc-verif{margin-top:6px;font-size:11px;color:var(--text2)}
+.rc-verif b{color:var(--text)}
 .rc-comprobante{display:inline-flex;align-items:center;gap:4px;color:var(--accent);font-size:12px;font-weight:700;text-decoration:none;padding:6px 12px;background:rgba(124,109,250,.08);border-radius:8px;margin-top:8px}
 .rc-comprobante:active{opacity:.7}
 .rc-delete-row{display:flex;justify-content:flex-end;margin-top:10px}
@@ -242,7 +251,15 @@ h1{font-size:20px;font-weight:800;margin-bottom:4px}
           <a href="../<?= htmlspecialchars($r['comprobante']) ?>" target="_blank" class="rc-comprobante">📎 Ver comprobante</a>
         <?php endif; ?>
 
+        <?php
+          $dupN = $dupMap[$r['usuario_id'] . '|' . (float)$r['monto']] ?? 0;
+        ?>
+        <?php if ($r['estado'] === 'pendiente' && $dupN > 1): ?>
+          <div class="rc-dup">⚠ <span>Posible duplicado: este cliente tiene <b><?= $dupN ?></b> recargas pendientes del mismo valor ($<?= number_format((float)$r['monto'],0,'.','.') ?>). Aprueba solo una y rechaza las demás.</span></div>
+        <?php endif; ?>
+
         <?php if ($r['estado'] === 'pendiente'): ?>
+          <div class="rc-verif">✓ Verifica que el comprobante sea exactamente por <b>$<?= number_format((float)$r['monto'],0,'.','.') ?></b> antes de aprobar.</div>
         <div class="rc-actions">
           <form method="POST">
             <?= csrfField() ?>
