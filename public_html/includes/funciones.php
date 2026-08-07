@@ -61,13 +61,19 @@ function comprarPlan(int $usuarioId, int $planId, string $comprobante = ''): arr
             $panelUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http')
                       . '://' . ($_SERVER['HTTP_HOST'] ?? 'tu-sitio.com') . '/admin/pedidos.php';
             enviarWhatsApp(
-                "🛒 *Nueva compra pendiente (transferencia)*\n"
+                "🛒 *NUEVA COMPRA PENDIENTE*\n"
+              . "━━━━━━━━━━━━━━━━━━\n"
               . "👤 Cliente: *" . ($ui['nombre'] ?? 'Cliente') . "*\n"
-              . "📧 " . ($ui['email'] ?? '') . "\n"
-              . "📦 {$plan['servicio_nombre']} — {$plan['nombre']}\n"
-              . "💵 " . formatMoney((float)$plan['precio']) . "\n"
-              . "🔗 {$panelUrl}\n"
-              . "→ Panel › Gestionar pedidos para validar y entregar."
+              . "📧 Correo: " . ($ui['email'] ?? '—') . "\n"
+              . "📦 Servicio: *{$plan['servicio_nombre']}*\n"
+              . "🎟️ Plan: {$plan['nombre']}\n"
+              . "⏱️ Duración: {$dias} días\n"
+              . "💵 Valor: *" . formatMoney((float)$plan['precio']) . "*\n"
+              . "🧾 Pedido: #{$pedidoId}\n"
+              . "🗓️ " . date('d/m/Y H:i') . "\n"
+              . "━━━━━━━━━━━━━━━━━━\n"
+              . "💳 Pago por transferencia — revisa el comprobante.\n"
+              . "👉 Valida y entrega en:\n{$panelUrl}"
             );
         }
 

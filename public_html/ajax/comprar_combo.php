@@ -3,6 +3,7 @@
 require_once '../includes/auth.php';
 require_once '../includes/seguridad.php';
 require_once '../includes/whatsapp.php';
+require_once '../includes/funciones.php';
 requireLogin();
 csrfRequire();
 header('Content-Type: application/json');
@@ -157,6 +158,11 @@ try {
         ->execute([$usuarioId, 'compra', $precioFinal, $saldo, $nuevoSaldo, null, "Compra combo: {$combo['nombre']}"]);
 
     $pdo->commit();
+
+    // Campanita del admin: registrar la compra del combo
+    $estadoTxt = $hayPendiente ? 'con planes pendientes de entrega' : 'entregada automáticamente';
+    crearNotificacion('compra', $usuarioId, $pedidoId,
+        "Nueva compra de combo ($estadoTxt): {$combo['nombre']} (" . number_format($precioFinal, 0, '.', '.') . ")");
 
     // Si alguno de los planes del combo quedó PENDIENTE de entregar, avisar al admin
     if ($hayPendiente) {

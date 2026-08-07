@@ -3,6 +3,7 @@
 require_once '../includes/auth.php';
 require_once '../includes/seguridad.php';
 require_once '../includes/whatsapp.php';
+require_once '../includes/funciones.php';
 requireLogin();
 csrfRequire();
 header('Content-Type: application/json');
@@ -126,6 +127,11 @@ try {
         ->execute([$usuarioId, 'compra', $precioFinal, $saldo, $nuevoSaldo, $pedidoId, "Compra: {$plan['servicio_nombre']} — {$plan['nombre']}"]);
 
     $pdo->commit();
+
+    // Campanita del admin: registrar la compra (entregada o pendiente)
+    $estadoTxt = $estadoPedido === 'entregado' ? 'entregada automáticamente' : 'pendiente de entrega';
+    crearNotificacion('compra', $usuarioId, $pedidoId,
+        "Nueva compra ($estadoTxt): {$plan['servicio_nombre']} — {$plan['nombre']} (" . number_format($precioFinal, 0, '.', '.') . ")");
 
     // Si quedó PENDIENTE (no había cuenta en stock para entregar), avisar al admin por WhatsApp
     if ($estadoPedido === 'pendiente') {

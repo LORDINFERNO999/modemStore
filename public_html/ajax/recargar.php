@@ -73,13 +73,19 @@ try {
 
     $nombreCliente = $usuarioWA['nombre'] ?? ($_SESSION['nombre'] ?? 'Cliente');
     $emailCliente  = $usuarioWA['email']  ?? '';
-    $montoFmt      = '$' . number_format($monto, 0, '.', '.');
-    $panelUrl      = SITE_URL . '/dashboard.php';
+    $montoFmt      = '$' . number_format($monto, 0, ',', '.');
+    $panelUrl      = SITE_URL . '/admin/recargas.php';
 
-    $mensajeWA = "💰 *Nueva solicitud de recarga*\n"
-               . "👤 Solicitada por: *{$nombreCliente}*\n"
+    $mensajeWA = "💰 *NUEVA RECARGA PENDIENTE*\n"
+               . "━━━━━━━━━━━━━━━━━━\n"
+               . "👤 Cliente: *{$nombreCliente}*\n"
+               . "📧 Correo: " . ($emailCliente ?: '—') . "\n"
                . "💵 Valor: *{$montoFmt} COP*\n"
-               . "🔗 Apruébala aquí: {$panelUrl}";
+               . "🧾 Recarga: #{$recargaId}\n"
+               . "🗓️ " . date('d/m/Y H:i') . "\n"
+               . "━━━━━━━━━━━━━━━━━━\n"
+               . "💳 Pago por transferencia — revisa el comprobante.\n"
+               . "👉 Apruébala en:\n{$panelUrl}";
 
     enviarWhatsApp($mensajeWA);
     // ────────────────────────────────────────────────────────────

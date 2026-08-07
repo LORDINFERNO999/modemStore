@@ -1043,6 +1043,13 @@ function showTab(tab, btn){
   document.getElementById('topbar-sub').textContent=s;
   closeSidebar();
 }
+// Abrir una pestaña según el parámetro de la URL (?tab=billetera)
+(function(){
+  const t = new URLSearchParams(location.search).get('tab');
+  if(t && document.getElementById('panel-'+t)){
+    showTab(t, document.getElementById('btn-'+t));
+  }
+})();
 function showAdmin(page,label,btn){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
