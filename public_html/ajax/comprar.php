@@ -133,27 +133,56 @@ try {
     crearNotificacion('compra', $usuarioId, $pedidoId,
         "Nueva compra ($estadoTxt): {$plan['servicio_nombre']} — {$plan['nombre']} (" . number_format($precioFinal, 0, '.', '.') . ")");
 
-    // Si quedó PENDIENTE (no había cuenta en stock para entregar), avisar al admin por WhatsApp
-    if ($estadoPedido === 'pendiente') {
-        $u = $pdo->prepare("SELECT nombre, email FROM usuarios WHERE id=?");
-        $u->execute([$usuarioId]);
-        $ui = $u->fetch();
-        $panelUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http')
-                  . '://' . ($_SERVER['HTTP_HOST'] ?? 'tu-sitio.com') . '/admin/pedidos.php';
-        enviarWhatsApp(
-            "🛒 *Nueva compra pendiente de entregar*\n"
-          . "👤 Solicitada por: *" . ($ui['nombre'] ?? 'Cliente') . "*\n"
-          . "📦 {$plan['servicio_nombre']} — {$plan['nombre']}\n"
-          . "💵 Valor: *$" . number_format($precioFinal, 0, '.', '.') . " COP*\n"
-          . "🔗 Entrégala aquí: {$panelUrl}"
-        );
+    // Preparar el aviso de Telegram (SIEMPRE, sea entregada o pendiente)
+    $u = $pdo->prepare("SELECT nombre, email FROM usuarios WHERE id=?");
+    $u->execute([$usuarioId]);
+    $ui = $u->fetch();
+    $nombreCli = $ui['nombre'] ?? 'Cliente';
+    $valorTxt  = '$' . number_format($precioFinal, 0, '.', '.');
+    $panelUrl  = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http')
+               . '://' . ($_SERVER['HTTP_HOST'] ?? 'tu-sitio.com') . '/admin/pedidos.php';
+
+    if ($estadoPedido === 'entregado') {
+        $mensajeTG = "🛒 *NUEVA VENTA* (entregada automáticamente)\n"
+                   . "━━━━━━━━━━━━━━━━━━\n"
+                   . "👤 Cliente: *{$nombreCli}*\n"
+                   . "📦 {$plan['servicio_nombre']} — {$plan['nombre']}\n"
+                   . "💵 Valor: *{$valorTxt} COP*\n"
+                   . "🧾 Pedido: #{$pedidoId}\n"
+                   . "🗓️ " . date('d/m/Y H:i') . "\n"
+                   . "━━━━━━━━━━━━━━━━━━\n"
+                   . "✅ Ya se entregaron las credenciales al cliente (había stock).";
+    } else {
+        $mensajeTG = "🛒 *NUEVA COMPRA PENDIENTE DE ENTREGAR*\n"
+                   . "━━━━━━━━━━━━━━━━━━\n"
+                   . "👤 Cliente: *{$nombreCli}*\n"
+                   . "📦 {$plan['servicio_nombre']} — {$plan['nombre']}\n"
+                   . "💵 Valor: *{$valorTxt} COP*\n"
+                   . "🧾 Pedido: #{$pedidoId}\n"
+                   . "🗓️ " . date('d/m/Y H:i') . "\n"
+                   . "━━━━━━━━━━━━━━━━━━\n"
+                   . "⚠️ No había stock — entrégala manualmente en:\n{$panelUrl}";
     }
 
+    // Responder al cliente PRIMERO (no lo hacemos esperar por Telegram)
     echo json_encode([
         'ok'          => true,
         'msg'         => "✓ \"{$plan['servicio_nombre']} — {$plan['nombre']}\" comprado. Revisa tus pedidos.",
         'saldo_nuevo' => $nuevoSaldo,
     ]);
+
+    // Cerrar la conexión si el servidor lo permite, y enviar el aviso en segundo plano
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } elseif (function_exists('litespeed_finish_request')) {
+        litespeed_finish_request();
+    }
+    try {
+        enviarWhatsApp($mensajeTG);
+    } catch (\Throwable $e) {
+        error_log('comprar.php Telegram: ' . $e->getMessage());
+    }
+    exit;
 
 } catch (Exception $e) {
     $pdo->rollBack();

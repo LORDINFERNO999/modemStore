@@ -164,27 +164,53 @@ try {
     crearNotificacion('compra', $usuarioId, $pedidoId,
         "Nueva compra de combo ($estadoTxt): {$combo['nombre']} (" . number_format($precioFinal, 0, '.', '.') . ")");
 
-    // Si alguno de los planes del combo quedó PENDIENTE de entregar, avisar al admin
+    // Preparar el aviso de Telegram (SIEMPRE, sea entregado o con pendientes)
+    $u = $pdo->prepare("SELECT nombre, email FROM usuarios WHERE id=?");
+    $u->execute([$usuarioId]);
+    $ui = $u->fetch();
+    $nombreCli = $ui['nombre'] ?? 'Cliente';
+    $valorTxt  = '$' . number_format($precioFinal, 0, '.', '.');
+    $panelUrl  = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http')
+               . '://' . ($_SERVER['HTTP_HOST'] ?? 'tu-sitio.com') . '/admin/pedidos.php';
+
     if ($hayPendiente) {
-        $u = $pdo->prepare("SELECT nombre, email FROM usuarios WHERE id=?");
-        $u->execute([$usuarioId]);
-        $ui = $u->fetch();
-        $panelUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http')
-                  . '://' . ($_SERVER['HTTP_HOST'] ?? 'tu-sitio.com') . '/admin/pedidos.php';
-        enviarWhatsApp(
-            "🎁 *Nueva compra de combo pendiente de entregar*\n"
-          . "👤 Solicitada por: *" . ($ui['nombre'] ?? 'Cliente') . "*\n"
-          . "🎁 Combo: {$combo['nombre']}\n"
-          . "💵 Valor: *$" . number_format($precioFinal, 0, '.', '.') . " COP*\n"
-          . "🔗 Entrégala aquí: {$panelUrl}"
-        );
+        $mensajeTG = "🎁 *NUEVA COMPRA DE COMBO* (con planes pendientes)\n"
+                   . "━━━━━━━━━━━━━━━━━━\n"
+                   . "👤 Cliente: *{$nombreCli}*\n"
+                   . "🎁 Combo: {$combo['nombre']}\n"
+                   . "💵 Valor: *{$valorTxt} COP*\n"
+                   . "🗓️ " . date('d/m/Y H:i') . "\n"
+                   . "━━━━━━━━━━━━━━━━━━\n"
+                   . "⚠️ Hay planes sin stock — entrégalos en:\n{$panelUrl}";
+    } else {
+        $mensajeTG = "🎁 *NUEVA VENTA DE COMBO* (entregada automáticamente)\n"
+                   . "━━━━━━━━━━━━━━━━━━\n"
+                   . "👤 Cliente: *{$nombreCli}*\n"
+                   . "🎁 Combo: {$combo['nombre']}\n"
+                   . "💵 Valor: *{$valorTxt} COP*\n"
+                   . "🗓️ " . date('d/m/Y H:i') . "\n"
+                   . "━━━━━━━━━━━━━━━━━━\n"
+                   . "✅ Ya se entregaron las credenciales al cliente.";
     }
 
+    // Responder al cliente PRIMERO (no lo hacemos esperar por Telegram)
     echo json_encode([
         'ok'          => true,
         'msg'         => "✓ Combo \"{$combo['nombre']}\" comprado. Revisa tus pedidos.",
         'saldo_nuevo' => $nuevoSaldo,
     ]);
+
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } elseif (function_exists('litespeed_finish_request')) {
+        litespeed_finish_request();
+    }
+    try {
+        enviarWhatsApp($mensajeTG);
+    } catch (\Throwable $e) {
+        error_log('comprar_combo.php Telegram: ' . $e->getMessage());
+    }
+    exit;
 
 } catch (Exception $e) {
     $pdo->rollBack();
