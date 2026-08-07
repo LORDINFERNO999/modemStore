@@ -51,13 +51,11 @@ if (!in_array($fromId, $admins, true)) {
 
 // Acción: rec_ap_<id>  |  rec_re_<id>
 if (preg_match('/^rec_(ap|re)_(\d+)$/', $data, $m)) {
-    $res = procesarRecargaTelegram((int)$m[2], $m[1]);
+    // Detener el "cargando" del botón de INMEDIATO (respuesta instantánea al toque)
+    telegramApi($cfg['token'], 'answerCallbackQuery', ['callback_query_id' => $cbId]);
 
-    // Aviso inmediato (globo) en el chat
-    telegramApi($cfg['token'], 'answerCallbackQuery', [
-        'callback_query_id' => $cbId,
-        'text'              => $res['msg'],
-    ]);
+    // Procesar la acción (aprobar/rechazar)
+    $res = procesarRecargaTelegram((int)$m[2], $m[1]);
 
     // Actualiza el mensaje: quita los botones y muestra el resultado final
     $caption = $res['caption'] . "\n<i>por " . htmlspecialchars($quien, ENT_NOQUOTES, 'UTF-8') . " · " . date('d/m/Y H:i') . "</i>";
