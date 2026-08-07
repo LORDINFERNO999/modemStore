@@ -254,7 +254,23 @@ tr:hover td{background:rgba(255,255,255,.015);}
 .search-bar{width:100%;padding:9px 12px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;margin-bottom:12px;}
 .search-bar:focus{border-color:rgba(124,109,250,.5);}
 @media(max-width:1100px){.grid2{grid-template-columns:1fr;}}
-@media(max-width:600px){.form-row{grid-template-columns:1fr;}.nav-links{display:none;}}
+@media(max-width:600px){
+  .form-row{grid-template-columns:1fr;}
+  .nav-links{display:none;}
+  /* Tabla de combos -> tarjetas en movil */
+  .card[style*="overflow-x"]{overflow-x:visible !important;}
+  table thead{display:none;}
+  table, table tbody, table tr, table td{display:block;width:100%;}
+  table tr{border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:12px;background:var(--surface,#161616);}
+  table td{border:none;padding:6px 0;display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:right;}
+  table td::before{content:attr(data-label);font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:700;flex-shrink:0;text-align:left;}
+  table td[data-label="Imagen"]{justify-content:flex-start;padding-bottom:8px;}
+  table td[data-label="Imagen"]::before{display:none;}
+  table td[data-label="Planes"]{flex-direction:column;align-items:flex-end;}
+  table td[data-label="Planes"]::before{margin-bottom:4px;}
+  table td[data-label="Acciones"]{flex-direction:column;align-items:stretch;border-top:1px solid var(--border);margin-top:6px;padding-top:10px;}
+  table td[data-label="Acciones"] > div{justify-content:flex-end;}
+}
 </style>
 </head>
 <body>
@@ -308,16 +324,16 @@ tr:hover td{background:rgba(255,255,255,.015);}
           $nombreSafe = htmlspecialchars($c['nombre'], ENT_QUOTES, 'UTF-8');
         ?>
         <tr>
-          <td><?php if ($c['imagen']): ?><img class="combo-img" src="../assets/img/<?= htmlspecialchars($c['imagen']) ?>" onerror="this.style.opacity='.2'"><?php else: ?><div style="width:38px;height:38px;border-radius:8px;background:<?= htmlspecialchars($c['color']) ?>22;display:flex;align-items:center;justify-content:center;font-size:20px">🎁</div><?php endif; ?></td>
-          <td>
+          <td data-label="Imagen"><?php if ($c['imagen']): ?><img class="combo-img" src="../assets/img/<?= htmlspecialchars($c['imagen']) ?>" onerror="this.style.opacity='.2'"><?php else: ?><div style="width:38px;height:38px;border-radius:8px;background:<?= htmlspecialchars($c['color']) ?>22;display:flex;align-items:center;justify-content:center;font-size:20px">🎁</div><?php endif; ?></td>
+          <td data-label="Nombre">
             <div style="display:flex;align-items:center;gap:7px"><span class="color-dot" style="background:<?= htmlspecialchars($c['color']) ?>"></span><b><?= htmlspecialchars($c['nombre']) ?></b></div>
             <?php if ($c['descripcion']): ?><div style="font-size:11px;color:var(--text3);margin-top:2px"><?= htmlspecialchars($c['descripcion']) ?></div><?php endif; ?>
           </td>
-          <td><?php foreach ($pns as $pn): ?><span class="plan-tag"><?= htmlspecialchars($pn) ?></span><?php endforeach; ?><?php if(empty($pns)): ?><span style="color:var(--text3);font-size:11px">Sin planes</span><?php endif; ?></td>
-          <td><div class="precio-val">$ <?= number_format($c['precio'],0,'.','.') ?></div><?php if ($c['precio_revendedor']>0): ?><div class="precio-rev">· $ <?= number_format($c['precio_revendedor'],0,'.','.') ?></div><?php endif; ?></td>
-          <td style="color:var(--text2)"><?= $c['duracion_dias'] ?>d</td>
-          <td><span class="badge badge-<?= $c['estado']==='activo'?'ok':'no' ?>"><?= $c['estado'] ?></span></td>
-          <td>
+          <td data-label="Planes"><?php foreach ($pns as $pn): ?><span class="plan-tag"><?= htmlspecialchars($pn) ?></span><?php endforeach; ?><?php if(empty($pns)): ?><span style="color:var(--text3);font-size:11px">Sin planes</span><?php endif; ?></td>
+          <td data-label="Precio"><div class="precio-val">$ <?= number_format($c['precio'],0,'.','.') ?></div><?php if ($c['precio_revendedor']>0): ?><div class="precio-rev">· $ <?= number_format($c['precio_revendedor'],0,'.','.') ?></div><?php endif; ?></td>
+          <td data-label="Días" style="color:var(--text2)"><?= $c['duracion_dias'] ?>d</td>
+          <td data-label="Estado"><span class="badge badge-<?= $c['estado']==='activo'?'ok':'no' ?>"><?= $c['estado'] ?></span></td>
+          <td data-label="Acciones">
             <div style="display:flex;gap:5px;flex-wrap:wrap">
               <a href="combos.php?editar=<?= $c['id'] ?>" class="btn-sm btn-edit">Editar</a>
               <?php if ($c['estado']==='activo'): ?>
