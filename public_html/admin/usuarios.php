@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 "DELETE FROM pedidos WHERE usuario_id = ?",
                 "DELETE FROM recargas WHERE usuario_id = ?",
                 "DELETE FROM movimientos_saldo WHERE usuario_id = ?",
-                "DELETE FROM notificaciones WHERE user_id = ?",
+                "DELETE FROM notificaciones WHERE usuario_id = ?",
             ];
             foreach ($asociados as $q) {
                 try { $pdo->prepare($q)->execute([$id]); } catch (Exception $e) { /* tabla/columna no aplica */ }
