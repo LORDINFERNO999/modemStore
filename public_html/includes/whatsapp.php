@@ -190,43 +190,49 @@ function telegramApi(string $token, string $method, array $params): ?array {
  * Envía a los administradores una recarga con la FOTO del comprobante y
  * botones ✅ Aprobar / ❌ Rechazar (para aprobar desde el propio chat).
  */
-function enviarRecargaTelegram(int $recargaId, string $texto, string $comprobanteUrl = '', bool $esImagen = true): bool {
+function enviarRecargaTelegram(int $recargaId, string $texto, string $comprobanteUrl = '', bool $esImagen = true, bool $conBotones = true): bool {
     $cfg = telegramConfig();
     if (!$cfg['token'] || !$cfg['chats']) {
         error_log("enviarRecargaTelegram: falta config de Telegram");
         return false;
     }
     $htmlText = telegramFormatear($texto);
-    $markup = json_encode(['inline_keyboard' => [[
-        ['text' => '✅ Aprobar',  'callback_data' => "rec_ap_$recargaId"],
-        ['text' => '❌ Rechazar', 'callback_data' => "rec_re_$recargaId"],
-    ]]]);
+
+    // Con botones (recarga pendiente) o sin ellos (ya aprobada/informativa)
+    $markup = $conBotones
+        ? json_encode(['inline_keyboard' => [[
+            ['text' => '✅ Aprobar',  'callback_data' => "rec_ap_$recargaId"],
+            ['text' => '❌ Rechazar', 'callback_data' => "rec_re_$recargaId"],
+          ]]])
+        : null;
 
     $algunoOk = false;
     foreach ($cfg['chats'] as $chat) {
         $enviado = false;
         // Si el comprobante es imagen, mandarlo como foto con la colilla visible
         if ($comprobanteUrl !== '' && $esImagen) {
-            $r = telegramApi($cfg['token'], 'sendPhoto', [
-                'chat_id'     => $chat,
-                'photo'       => $comprobanteUrl,
-                'caption'     => $htmlText,
-                'parse_mode'  => 'HTML',
-                'reply_markup'=> $markup,
-            ]);
+            $params = [
+                'chat_id'    => $chat,
+                'photo'      => $comprobanteUrl,
+                'caption'    => $htmlText,
+                'parse_mode' => 'HTML',
+            ];
+            if ($markup !== null) $params['reply_markup'] = $markup;
+            $r = telegramApi($cfg['token'], 'sendPhoto', $params);
             $enviado = is_array($r) && !empty($r['ok']);
         }
         // Si no es imagen (PDF) o falló la foto, mandar texto con link al comprobante
         if (!$enviado) {
             $t = $htmlText;
             if ($comprobanteUrl !== '') $t .= "\n\n📎 Ver comprobante: " . $comprobanteUrl;
-            $r = telegramApi($cfg['token'], 'sendMessage', [
+            $params = [
                 'chat_id'                  => $chat,
                 'text'                     => $t,
                 'parse_mode'               => 'HTML',
-                'reply_markup'             => $markup,
                 'disable_web_page_preview' => false,
-            ]);
+            ];
+            if ($markup !== null) $params['reply_markup'] = $markup;
+            $r = telegramApi($cfg['token'], 'sendMessage', $params);
             $enviado = is_array($r) && !empty($r['ok']);
         }
         if ($enviado) $algunoOk = true;
