@@ -165,10 +165,9 @@ try {
 
     // Aviso a Telegram (nunca debe afectar la respuesta al cliente)
     try {
-        if ($autoAprobada) {
-            enviarWhatsApp($mensajeTG); // ya aprobada → aviso informativo, sin botones
-        } elseif (function_exists('enviarRecargaTelegram')) {
-            enviarRecargaTelegram($recargaId, $mensajeTG, $comprobanteUrl, $esImagen);
+        if (function_exists('enviarRecargaTelegram')) {
+            // Auto-aprobada → foto del comprobante SIN botones; pendiente → CON botones
+            enviarRecargaTelegram($recargaId, $mensajeTG, $comprobanteUrl, $esImagen, !$autoAprobada);
         } else {
             enviarWhatsApp($mensajeTG);
         }
