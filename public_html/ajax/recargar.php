@@ -91,7 +91,13 @@ try {
     // Horario: 11 PM a 10 AM · Tope: $30.000 · Cliente de confianza:
     // al menos 1 recarga ya aprobada y sin rechazos en los últimos 30 días.
     $topeAuto = 30000;
-    $hora = (int) date('G'); // 0-23
+    // Hora de COLOMBIA (no del servidor, que suele estar en UTC)
+    try {
+        $ahoraCo = new DateTime('now', new DateTimeZone('America/Bogota'));
+        $hora = (int) $ahoraCo->format('G'); // 0-23
+    } catch (\Throwable $e) {
+        $hora = (int) date('G');
+    }
     $enHorarioNocturno = ($hora >= 23 || $hora < 10); // 23:00 → 09:59 (hasta las 10 AM)
     $autoAprobada = false;
 
