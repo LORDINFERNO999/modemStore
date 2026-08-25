@@ -76,8 +76,7 @@ try {
     crearNotificacion('recarga', $_SESSION['usuario_id'], $recargaId,
         "Nueva recarga pendiente: " . formatMoney($monto) . " — " . ($_SESSION['nombre'] ?? 'Usuario'));
 
-    // ── Aviso WhatsApp al admin ──────────────────────────────────
-    // Leer datos del usuario directo de BD (más confiable que sesión)
+    // Datos del usuario (más confiable desde BD que desde la sesión)
     $stmtU = $pdo->prepare("SELECT nombre, email FROM usuarios WHERE id=?");
     $stmtU->execute([$_SESSION['usuario_id']]);
     $usuarioWA = $stmtU->fetch();
@@ -85,25 +84,70 @@ try {
     $nombreCliente = $usuarioWA['nombre'] ?? ($_SESSION['nombre'] ?? 'Cliente');
     $emailCliente  = $usuarioWA['email']  ?? '';
     $montoFmt      = '$' . number_format($monto, 0, ',', '.');
-
-    $mensajeTG = "💰 *NUEVA RECARGA PENDIENTE*\n"
-               . "━━━━━━━━━━━━━━━━━━\n"
-               . "👤 Cliente: *{$nombreCliente}*\n"
-               . "📧 Correo: " . ($emailCliente ?: '—') . "\n"
-               . "💵 Valor: *{$montoFmt} COP*\n"
-               . "🧾 Recarga: #{$recargaId}\n"
-               . "🗓️ " . date('d/m/Y H:i') . "\n"
-               . "━━━━━━━━━━━━━━━━━━\n"
-               . "👇 Revisa la colilla y aprueba o rechaza con los botones.";
-
     $comprobanteUrl = SITE_URL . '/' . $rutaRel;
     $esImagen = in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true);
+
+    // ── AUTO-APROBACIÓN NOCTURNA ──────────────────────────────────
+    // Horario: 11 PM a 10 AM · Tope: $30.000 · Cliente de confianza:
+    // al menos 1 recarga ya aprobada y sin rechazos en los últimos 30 días.
+    $topeAuto = 30000;
+    $hora = (int) date('G'); // 0-23
+    $enHorarioNocturno = ($hora >= 23 || $hora < 10); // 23:00 → 09:59 (hasta las 10 AM)
+    $autoAprobada = false;
+
+    if ($enHorarioNocturno && $monto <= $topeAuto) {
+        $stmtConf = $pdo->prepare("
+            SELECT
+                SUM(estado = 'aprobada') AS aprobadas,
+                SUM(estado = 'rechazada' AND created_at >= (NOW() - INTERVAL 30 DAY)) AS rechazos_recientes
+            FROM recargas WHERE usuario_id = ?
+        ");
+        $stmtConf->execute([$_SESSION['usuario_id']]);
+        $conf = $stmtConf->fetch();
+
+        $esConfiable = ((int)($conf['aprobadas'] ?? 0) >= 1) && ((int)($conf['rechazos_recientes'] ?? 0) === 0);
+
+        if ($esConfiable) {
+            $ok = registrarMovimiento((int)$_SESSION['usuario_id'], 'recarga', (float)$monto, $recargaId, 'Recarga auto-aprobada (nocturna)');
+            if ($ok) {
+                $pdo->prepare("UPDATE recargas SET estado = 'aprobada' WHERE id = ?")->execute([$recargaId]);
+                $pdo->prepare("UPDATE notificaciones SET atendida = 1, leida = 1 WHERE tipo = 'recarga' AND referencia_id = ?")->execute([$recargaId]);
+                $autoAprobada = true;
+            }
+        }
+    }
+
+    // Mensajes según el resultado
+    if ($autoAprobada) {
+        $respuestaMsg = '¡Recarga aprobada automáticamente! 🎉 Tu saldo ya fue actualizado. Refresca la página para verlo.';
+        $mensajeTG = "✅ *RECARGA AUTO-APROBADA* (nocturna)\n"
+                   . "━━━━━━━━━━━━━━━━━━\n"
+                   . "👤 Cliente: *{$nombreCliente}*\n"
+                   . "📧 Correo: " . ($emailCliente ?: '—') . "\n"
+                   . "💵 Valor: *{$montoFmt} COP*\n"
+                   . "🧾 Recarga: #{$recargaId}\n"
+                   . "🗓️ " . date('d/m/Y H:i') . "\n"
+                   . "━━━━━━━━━━━━━━━━━━\n"
+                   . "Cliente de confianza · saldo acreditado. Colilla: {$comprobanteUrl}";
+    } else {
+        $respuestaMsg = '¡Solicitud enviada! Tu saldo se actualizará cuando el admin valide tu transferencia.';
+        $mensajeTG = "💰 *NUEVA RECARGA PENDIENTE*\n"
+                   . "━━━━━━━━━━━━━━━━━━\n"
+                   . "👤 Cliente: *{$nombreCliente}*\n"
+                   . "📧 Correo: " . ($emailCliente ?: '—') . "\n"
+                   . "💵 Valor: *{$montoFmt} COP*\n"
+                   . "🧾 Recarga: #{$recargaId}\n"
+                   . "🗓️ " . date('d/m/Y H:i') . "\n"
+                   . "━━━━━━━━━━━━━━━━━━\n"
+                   . "👇 Revisa la colilla y aprueba o rechaza con los botones.";
+    }
 
     // Responder al cliente con JSON limpio (sin manipular headers, para no romper la respuesta)
     echo json_encode([
         'ok'  => true,
-        'msg' => '¡Solicitud enviada! Tu saldo se actualizará cuando el admin valide tu transferencia.',
+        'msg' => $respuestaMsg,
         'recarga_id' => $recargaId,
+        'auto_aprobada' => $autoAprobada,
     ]);
 
     // Cerrar la conexión si el servidor lo permite, para no esperar por Telegram
@@ -115,7 +159,9 @@ try {
 
     // Aviso a Telegram (nunca debe afectar la respuesta al cliente)
     try {
-        if (function_exists('enviarRecargaTelegram')) {
+        if ($autoAprobada) {
+            enviarWhatsApp($mensajeTG); // ya aprobada → aviso informativo, sin botones
+        } elseif (function_exists('enviarRecargaTelegram')) {
             enviarRecargaTelegram($recargaId, $mensajeTG, $comprobanteUrl, $esImagen);
         } else {
             enviarWhatsApp($mensajeTG);
