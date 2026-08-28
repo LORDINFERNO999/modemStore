@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pass   = $_POST['password'] ?? '';
         $rol    = $_POST['rol'] ?? 'cliente';
         $estado = $_POST['estado'] ?? 'activo';
-        $saldo  = (float)str_replace(['.','$',' '], '', $_POST['saldo'] ?? '0');
+        $saldo  = (float) preg_replace('/[^0-9]/', '', (string)($_POST['saldo'] ?? '0'));
         $esRevendedor = (($_POST['es_revendedor'] ?? '0') === '1') ? 1 : 0;
 
         if (!$nombre || !$email || !$pass) {
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email  = trim($_POST['email']  ?? '');
         $rol    = $_POST['rol']    ?? 'cliente';
         $estado = $_POST['estado'] ?? 'activo';
-        $saldo  = (float)str_replace(['.','$',' '], '', $_POST['saldo'] ?? '0');
+        $saldo  = (float) preg_replace('/[^0-9]/', '', (string)($_POST['saldo'] ?? '0'));
         $pass   = $_POST['password'] ?? '';
         $esRevendedor = (($_POST['es_revendedor'] ?? '0') === '1') ? 1 : 0;
 
@@ -472,7 +472,7 @@ tr:hover td { background:rgba(255,255,255,.015); }
       </div>
       <div class="form-group">
         <label>Saldo inicial (COP)</label>
-        <input type="number" name="saldo" value="0" min="0" step="any">
+        <input type="text" name="saldo" value="0" inputmode="numeric" placeholder="Ej: 30.000 o 30000">
       </div>
       <button type="submit" class="btn-primary">Crear usuario →</button>
     </form>
@@ -522,7 +522,7 @@ tr:hover td { background:rgba(255,255,255,.015); }
       </div>
       <div class="form-group">
         <label>Saldo (COP)</label>
-        <input type="number" name="saldo" id="eu_saldo" class="input-saldo" min="0" step="any" value="0">
+        <input type="text" name="saldo" id="eu_saldo" class="input-saldo" inputmode="numeric" value="0" placeholder="Ej: 30.000 o 30000">
         <div class="form-hint">Edita directamente el saldo disponible del usuario. Solo visible para administradores.</div>
       </div>
       <button type="submit" class="btn-primary">Guardar cambios →</button>
