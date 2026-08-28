@@ -87,21 +87,14 @@ try {
     $comprobanteUrl = SITE_URL . '/' . $rutaRel;
     $esImagen = in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true);
 
-    // ── AUTO-APROBACIÓN NOCTURNA ──────────────────────────────────
-    // Horario: 11 PM a 10 AM · Tope: $30.000 · Cliente de confianza:
-    // al menos 1 recarga ya aprobada y sin rechazos en los últimos 30 días.
-    $topeAuto = 30000;
-    // Hora de COLOMBIA (no del servidor, que suele estar en UTC)
-    try {
-        $ahoraCo = new DateTime('now', new DateTimeZone('America/Bogota'));
-        $hora = (int) $ahoraCo->format('G'); // 0-23
-    } catch (\Throwable $e) {
-        $hora = (int) date('G');
-    }
-    $enHorarioNocturno = ($hora >= 23 || $hora < 10); // 23:00 → 09:59 (hasta las 10 AM)
+    // ── AUTO-APROBACIÓN (interruptor manual del panel) ────────────
+    // El admin la ACTIVA cuando sale y la DESACTIVA cuando llega.
+    // Candados: tope de monto + cliente de confianza (>=1 aprobada, sin rechazos recientes).
+    $autoActiva = (getConfig('auto_recarga_activa', '0') === '1');
+    $topeAuto   = (int) getConfig('auto_recarga_tope', '40000');
     $autoAprobada = false;
 
-    if ($enHorarioNocturno && $monto <= $topeAuto) {
+    if ($autoActiva && $monto <= $topeAuto) {
         $stmtConf = $pdo->prepare("
             SELECT
                 SUM(estado = 'aprobada') AS aprobadas,
@@ -114,7 +107,7 @@ try {
         $esConfiable = ((int)($conf['aprobadas'] ?? 0) >= 1) && ((int)($conf['rechazos_recientes'] ?? 0) === 0);
 
         if ($esConfiable) {
-            $ok = registrarMovimiento((int)$_SESSION['usuario_id'], 'recarga', (float)$monto, $recargaId, 'Recarga auto-aprobada (nocturna)');
+            $ok = registrarMovimiento((int)$_SESSION['usuario_id'], 'recarga', (float)$monto, $recargaId, 'Recarga auto-aprobada (automática)');
             if ($ok) {
                 $pdo->prepare("UPDATE recargas SET estado = 'aprobada' WHERE id = ?")->execute([$recargaId]);
                 $pdo->prepare("UPDATE notificaciones SET atendida = 1, leida = 1 WHERE tipo = 'recarga' AND referencia_id = ?")->execute([$recargaId]);
@@ -126,7 +119,7 @@ try {
     // Mensajes según el resultado
     if ($autoAprobada) {
         $respuestaMsg = '¡Recarga aprobada automáticamente! 🎉 Tu saldo ya fue actualizado. Refresca la página para verlo.';
-        $mensajeTG = "✅ *RECARGA AUTO-APROBADA* (nocturna)\n"
+        $mensajeTG = "✅ *RECARGA AUTO-APROBADA* (automática)\n"
                    . "━━━━━━━━━━━━━━━━━━\n"
                    . "👤 Cliente: *{$nombreCliente}*\n"
                    . "📧 Correo: " . ($emailCliente ?: '—') . "\n"
