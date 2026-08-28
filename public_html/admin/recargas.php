@@ -126,13 +126,23 @@ h1{font-size:20px;font-weight:800;margin-bottom:4px}
 .auto-badge.on{background:rgba(29,185,84,.18);color:var(--ok)}
 .auto-badge.off{background:rgba(239,68,68,.15);color:var(--err)}
 .auto-form{display:flex;align-items:flex-end;gap:10px;margin-top:12px;flex-wrap:wrap}
-.auto-tope{font-size:11px;color:var(--text3);display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px}
-.auto-tope input{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-family:inherit;font-size:14px;font-weight:700;outline:none}
+.auto-tope{font-size:11px;color:var(--text3);display:flex;flex-direction:column;gap:4px;width:180px}
+.auto-tope input{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:11px;color:var(--text);font-family:inherit;font-size:15px;font-weight:700;outline:none;width:100%}
 .auto-tope input:focus{border-color:var(--accent)}
-.auto-btn{border:none;border-radius:8px;padding:11px 18px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap}
+.auto-btns{flex:1;display:flex;justify-content:flex-end}
+.auto-btn{border:none;border-radius:8px;padding:12px 22px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;white-space:nowrap}
 .auto-btn.activar{background:linear-gradient(135deg,var(--ok),#22c55e);color:#fff}
 .auto-btn.desactivar{background:rgba(239,68,68,.15);color:var(--err)}
 .auto-note{font-size:11px;color:var(--text3);margin-top:10px;line-height:1.4}
+@media(max-width:600px){
+  .auto-box{padding:14px}
+  .auto-head{flex-direction:column;gap:6px}
+  .auto-badge{align-self:flex-start}
+  .auto-form{flex-direction:column;align-items:stretch;gap:12px}
+  .auto-tope{width:100%}
+  .auto-btns{width:100%}
+  .auto-btn{width:100%;padding:14px}
+}
 @keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 
 .stats-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
