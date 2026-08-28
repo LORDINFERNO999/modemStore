@@ -7,6 +7,18 @@ requireAdmin();
 
 $msg = ''; $msgTipo = 'ok';
 
+// Guardar configuración de la aprobación automática (interruptor ON/OFF + tope)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'auto_config') {
+    csrfRequire();
+    setConfig('auto_recarga_activa', (($_POST['auto_activa'] ?? '0') === '1') ? '1' : '0');
+    $tope = (int) preg_replace('/[^0-9]/', '', (string)($_POST['auto_tope'] ?? '40000'));
+    if ($tope < 1000) $tope = 40000;
+    setConfig('auto_recarga_tope', (string)$tope);
+    $msg = (($_POST['auto_activa'] ?? '0') === '1')
+         ? "Aprobación automática ACTIVADA (tope $" . number_format($tope, 0, ',', '.') . ") ✓"
+         : "Aprobación automática DESACTIVADA ✓";
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'aprobar') {
     csrfRequire();
     $recargaId = (int)($_POST['recarga_id'] ?? 0);
@@ -72,6 +84,10 @@ $recargas = $recargas->fetchAll();
 
 $pendientesCount = (int)$pdo->query("SELECT COUNT(*) FROM recargas WHERE estado = 'pendiente'")->fetchColumn();
 
+// Estado actual de la aprobación automática
+$autoActivaCfg = (getConfig('auto_recarga_activa', '0') === '1');
+$autoTopeCfg   = (int) getConfig('auto_recarga_tope', '40000');
+
 // Posibles duplicados: mismo cliente + mismo monto con varias recargas PENDIENTES
 $dupMap = [];
 foreach ($pdo->query("SELECT usuario_id, monto, COUNT(*) AS c FROM recargas WHERE estado='pendiente' GROUP BY usuario_id, monto HAVING c > 1")->fetchAll() as $d) {
@@ -100,6 +116,23 @@ h1{font-size:20px;font-weight:800;margin-bottom:4px}
 .flash button:hover{opacity:1}
 .flash.ok{background:rgba(29,185,84,.08);border:1px solid rgba(29,185,84,.25);color:var(--ok)}
 .flash.err{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);color:var(--err)}
+.auto-box{border-radius:var(--rl);padding:16px;margin-bottom:18px;border:1px solid var(--border)}
+.auto-box.on{background:rgba(29,185,84,.07);border-color:rgba(29,185,84,.35)}
+.auto-box.off{background:var(--surface)}
+.auto-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.auto-title{font-size:14px;font-weight:800}
+.auto-desc{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.4}
+.auto-badge{font-size:10px;font-weight:800;letter-spacing:.5px;padding:4px 10px;border-radius:20px;flex-shrink:0}
+.auto-badge.on{background:rgba(29,185,84,.18);color:var(--ok)}
+.auto-badge.off{background:rgba(239,68,68,.15);color:var(--err)}
+.auto-form{display:flex;align-items:flex-end;gap:10px;margin-top:12px;flex-wrap:wrap}
+.auto-tope{font-size:11px;color:var(--text3);display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px}
+.auto-tope input{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-family:inherit;font-size:14px;font-weight:700;outline:none}
+.auto-tope input:focus{border-color:var(--accent)}
+.auto-btn{border:none;border-radius:8px;padding:11px 18px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap}
+.auto-btn.activar{background:linear-gradient(135deg,var(--ok),#22c55e);color:#fff}
+.auto-btn.desactivar{background:rgba(239,68,68,.15);color:var(--err)}
+.auto-note{font-size:11px;color:var(--text3);margin-top:10px;line-height:1.4}
 @keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 
 .stats-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
@@ -206,6 +239,38 @@ h1{font-size:20px;font-weight:800;margin-bottom:4px}
   <button type="button" onclick="document.getElementById('flashMsg').remove()">✕</button>
 </div>
 <?php endif; ?>
+
+<!-- Interruptor de aprobación automática -->
+<div class="auto-box <?= $autoActivaCfg ? 'on' : 'off' ?>">
+  <div class="auto-head">
+    <div>
+      <div class="auto-title">🤖 Aprobación automática de recargas</div>
+      <div class="auto-desc">
+        <?= $autoActivaCfg
+            ? 'ACTIVADA — las recargas de clientes de confianza (hasta $' . number_format($autoTopeCfg, 0, ',', '.') . ') se aprueban solas.'
+            : 'DESACTIVADA — todas las recargas las apruebas tú manualmente.' ?>
+      </div>
+    </div>
+    <span class="auto-badge <?= $autoActivaCfg ? 'on' : 'off' ?>"><?= $autoActivaCfg ? 'ACTIVA' : 'INACTIVA' ?></span>
+  </div>
+  <form method="POST" class="auto-form">
+    <?= csrfField() ?>
+    <input type="hidden" name="accion" value="auto_config">
+    <label class="auto-tope">Tope máximo por recarga (COP)
+      <input type="number" name="auto_tope" value="<?= $autoTopeCfg ?>" min="1000" step="1000">
+    </label>
+    <div class="auto-btns">
+      <?php if ($autoActivaCfg): ?>
+        <input type="hidden" name="auto_activa" value="0">
+        <button type="submit" class="auto-btn desactivar">⏸ Desactivar</button>
+      <?php else: ?>
+        <input type="hidden" name="auto_activa" value="1">
+        <button type="submit" class="auto-btn activar">▶ Activar</button>
+      <?php endif; ?>
+    </div>
+  </form>
+  <div class="auto-note">💡 Actívala cuando salgas y desactívala al volver. Los clientes nuevos y montos mayores al tope siempre requieren tu aprobación.</div>
+</div>
 
 <div class="filters">
   <?php foreach (['' => 'Todas', 'pendiente' => 'Pendientes', 'aprobada' => 'Aprobadas', 'rechazada' => 'Rechazadas'] as $k => $lbl): ?>
