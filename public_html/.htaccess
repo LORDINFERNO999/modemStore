@@ -6,3 +6,41 @@ Options -Indexes
 <FilesMatch "\.(sql|env|ini|log)$">
 Require all denied
 </FilesMatch>
+
+# ─────────────────────────────────────────────────────────────────
+# RENDIMIENTO: compresión de texto (gzip) para HTML, CSS, JS, JSON, SVG
+# ─────────────────────────────────────────────────────────────────
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css
+    AddOutputFilterByType DEFLATE application/javascript application/x-javascript text/javascript
+    AddOutputFilterByType DEFLATE application/json application/xml
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# ─────────────────────────────────────────────────────────────────
+# RENDIMIENTO: caché del navegador (imágenes, css, js, fuentes)
+# Las imágenes tienen nombre único, por eso se pueden cachear mucho tiempo.
+# El HTML (.php) NO se cachea, para que siempre muestre datos frescos.
+# ─────────────────────────────────────────────────────────────────
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpeg              "access plus 1 year"
+    ExpiresByType image/png               "access plus 1 year"
+    ExpiresByType image/gif               "access plus 1 year"
+    ExpiresByType image/webp              "access plus 1 year"
+    ExpiresByType image/svg+xml           "access plus 1 year"
+    ExpiresByType image/x-icon            "access plus 1 year"
+    ExpiresByType video/mp4               "access plus 1 year"
+    ExpiresByType text/css                "access plus 1 month"
+    ExpiresByType application/javascript  "access plus 1 month"
+    ExpiresByType text/javascript         "access plus 1 month"
+    ExpiresByType font/woff2              "access plus 1 year"
+    ExpiresByType font/woff               "access plus 1 year"
+</IfModule>
+
+# Cache-Control explícito para archivos estáticos (respaldo si mod_expires no está)
+<IfModule mod_headers.c>
+    <FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|ico|mp4|woff2?|css|js)$">
+        Header set Cache-Control "public, max-age=2592000"
+    </FilesMatch>
+</IfModule>
