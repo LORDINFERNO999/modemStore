@@ -599,7 +599,7 @@ img{max-width:100%}
         ?>
         <a href="javascript:void(0)" class="srv-bubble" data-srv="<?= $bSlug ?>" onclick="filtrarServicio('<?= $bSlug ?>', this)">
           <div class="srv-bubble-circle" style="border-color:<?= $bColor ?>88;background:<?= $bColor ?>22">
-            <img src="assets/img/<?= htmlspecialchars($bImg) ?>" alt="<?= htmlspecialchars($servNombre) ?>" onerror="this.style.opacity='0'">
+            <img src="assets/img/<?= htmlspecialchars($bImg) ?>" alt="<?= htmlspecialchars($servNombre) ?>" loading="lazy" decoding="async" onerror="this.style.opacity='0'">
           </div>
           <span class="srv-bubble-name"><?= htmlspecialchars($servNombre) ?></span>
         </a>
@@ -626,7 +626,7 @@ img{max-width:100%}
         ?>
         <div class="plan-card<?= !$servicioTieneStock ? ' agotado' : '' ?>" style="--c:<?= $oColor ?>" onclick="filtrarServicio('<?= $oSlug ?>')">
           <div class="pc-banner">
-            <img src="assets/img/<?= htmlspecialchars($oImg) ?>" alt="<?= htmlspecialchars($servNombre) ?>" onerror="this.style.display='none'">
+            <img src="assets/img/<?= htmlspecialchars($oImg) ?>" alt="<?= htmlspecialchars($servNombre) ?>" loading="lazy" decoding="async" onerror="this.style.display='none'">
             <?php if (!$servicioTieneStock): ?>
             <span class="pc-badge pc-badge-agotado">🔴 Agotado</span>
             <?php else: ?>
@@ -727,7 +727,7 @@ img{max-width:100%}
                onclick="abrirCompra(<?= $plan['id'] ?>,'<?= addslashes($plan['nombre']) ?>','<?= addslashes($plan['servicio_nombre']) ?>',<?= $precioFinal ?>,<?= $plan['duracion_dias'] ?>,<?= $plan['stock'] ?>,'<?= htmlspecialchars($plan['imagen'] ?: $plan['servicio_imagen']) ?>',<?= $tieneRev ? 1 : 0 ?>)"
                <?php endif; ?>>
             <div class="pc-banner">
-              <img src="assets/img/<?= htmlspecialchars($plan['imagen'] ?: $plan['servicio_imagen']) ?>" alt="<?= htmlspecialchars($plan['servicio_nombre']) ?>" onerror="this.style.display='none'">
+              <img src="assets/img/<?= htmlspecialchars($plan['imagen'] ?: $plan['servicio_imagen']) ?>" alt="<?= htmlspecialchars($plan['servicio_nombre']) ?>" loading="lazy" decoding="async" onerror="this.style.display='none'">
               <?php if ($sinStock): ?>
               <span class="pc-badge pc-badge-agotado">🔴 Agotado</span>
               <?php else: ?>
@@ -849,7 +849,7 @@ img{max-width:100%}
       ?>
       <div class="pedido-card">
         <div class="pedido-img" style="background:<?= $p['color'] ?>22">
-          <img src="assets/img/<?= htmlspecialchars($p['servicio_imagen']) ?>" alt="" onerror="this.innerHTML='🎬'">
+          <img src="assets/img/<?= htmlspecialchars($p['servicio_imagen']) ?>" alt="" loading="lazy" decoding="async" onerror="this.innerHTML='🎬'">
         </div>
         <div class="pedido-body">
           <div class="pedido-nombre"><?= htmlspecialchars($p['servicio_nombre']) ?> — <?= htmlspecialchars($p['plan_nombre']) ?></div>

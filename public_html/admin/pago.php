@@ -2,6 +2,7 @@
 // admin/pago.php — Datos de pago (QR + cuenta destino) editables por el admin
 require_once '../includes/auth.php';
 require_once '../includes/seguridad.php';
+require_once '../includes/imagenes.php';
 requireAdmin();
 
 $msg = ''; $msgTipo = 'ok';
@@ -21,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($_FILES['pago_qr']['size'] <= 3 * 1024 * 1024) {
                 $nombre = 'qr-pago.' . $ext;
                 if (move_uploaded_file($_FILES['pago_qr']['tmp_name'], __DIR__ . '/../assets/img/' . $nombre)) {
+                    optimizarImagen(__DIR__ . '/../assets/img/' . $nombre, 600, 82);
                     setConfig('pago_qr', $nombre);
                 } else { $msg = 'No se pudo guardar el QR.'; $msgTipo = 'err'; }
             } else { $msg = 'El QR supera 3 MB.'; $msgTipo = 'err'; }
