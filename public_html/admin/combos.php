@@ -2,6 +2,7 @@
 // admin/combos.php
 require_once '../includes/auth.php';
 require_once '../includes/seguridad.php';
+require_once '../includes/imagenes.php';
 requireAdmin();
 
 $activeTab = $_GET['tab'] ?? 'lista';
@@ -29,6 +30,7 @@ function subirImgCombo(string $campo, ?string &$err = null): ?string {
     $nombre  = uniqid('combo_').'.'.$ext;
     $destino = __DIR__.'/../assets/img/'.$nombre;
     if (!move_uploaded_file($f['tmp_name'], $destino)) { $err = "No se pudo guardar"; return null; }
+    optimizarImagen($destino, 600, 82); // comprime para que no pese de más
     return $nombre;
 }
 

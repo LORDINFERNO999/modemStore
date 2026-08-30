@@ -2,6 +2,7 @@
 // admin/servicios.php
 require_once '../includes/auth.php';
 require_once '../includes/seguridad.php';
+require_once '../includes/imagenes.php';
 requireAdmin();
 
 $msg = ''; $msgTipo = 'ok';
@@ -25,6 +26,7 @@ function subirImagen(string $campo, ?string &$error = null): ?string {
     $nombre  = uniqid('srv_') . '.' . $ext;
     $destino = __DIR__ . '/../assets/img/' . $nombre;
     if (!move_uploaded_file($file['tmp_name'], $destino)) { $error = "No se pudo guardar '{$file['name']}'. Revisa permisos de assets/img/"; return null; }
+    optimizarImagen($destino, 600, 82); // comprime para que no pese de más
     return $nombre;
 }
 

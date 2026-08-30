@@ -2,6 +2,7 @@
 // admin/pasarela.php — Gestión del slider de la pasarela (index.php)
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/seguridad.php';
+require_once __DIR__ . '/../includes/imagenes.php';
 requireLogin();
 requireAdmin();
 
@@ -44,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
                 $accentTo    = trim($_POST['accent_to'] ?? '');
 
                 if (move_uploaded_file($file['tmp_name'], $destino)) {
+                    optimizarImagen($destino, 900, 82); // sliders más anchos → 900px
                     $pdo->prepare("
                         INSERT INTO sliders
                             (tag, titulo, subtitulo, descripcion, boton_texto, boton_link, imagen, accent_from, accent_to, estado)
@@ -107,6 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
                 $destino = $imgDir . $nombre;
 
                 if (move_uploaded_file($file['tmp_name'], $destino)) {
+                    optimizarImagen($destino, 900, 82); // sliders más anchos → 900px
                     // Eliminar imagen anterior
                     $row = $pdo->prepare("SELECT imagen FROM sliders WHERE id=?");
                     $row->execute([$id]);
